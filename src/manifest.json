@@ -1,0 +1,21 @@
+{
+  "name": "Aftras CRM",
+  "short_name": "Aftras CRM",
+  "description": "CRM PWA pour gestion des prospects et ventes",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "images/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "images/logo/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

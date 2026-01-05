@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>
+      Gestion Clients | TailAdmin - Tailwind CSS Admin Dashboard Template
+    </title>
+  </head>
+  <body
+    x-data="{ page: 'adminClients', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+  >
+    <!-- ===== Preloader Start ===== -->
+    <include src="./partials/preloader.html"></include>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- ===== Sidebar Start ===== -->
+      <include src="./partials/sidebar.html"></include>
+      <!-- ===== Sidebar End ===== -->
+
+      <!-- ===== Content Area Start ===== -->
+      <div
+        class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto"
+      >
+        <!-- Small Device Overlay Start -->
+        <include src="./partials/overlay.html" />
+        <!-- Small Device Overlay End -->
+
+        <!-- ===== Header Start ===== -->
+        <include src="./partials/header.html" />
+        <!-- ===== Header End ===== -->
+
+        <!-- ===== Main Content Start ===== -->
+        <main>
+          <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+            <!-- Breadcrumb Start -->
+            <div x-data="{ pageName: `Gestion Clients`}">
+              <include src="./partials/breadcrumb.html" />
+            </div>
+            <!-- Breadcrumb End -->
+
+            <div class="space-y-5 sm:space-y-6">
+              <div
+                class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+              >
+                <div class="px-5 py-4 sm:px-6 sm:py-5">
+                  <h3
+                    class="text-base font-medium text-gray-800 dark:text-white/90"
+                  >
+                    Tous les Clients
+                  </h3>
+                </div>
+                <div
+                  class="p-5 border-t border-gray-100 dark:border-gray-800 sm:p-6"
+                >
+                  <div id="clientsList" class="space-y-4">
+                    <!-- Clients will be loaded here -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sales List -->
+              <div
+                class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+              >
+                <div class="px-5 py-4 sm:px-6 sm:py-5">
+                  <h3
+                    class="text-base font-medium text-gray-800 dark:text-white/90"
+                  >
+                    Ventes et Commissions
+                  </h3>
+                </div>
+                <div
+                  class="p-5 border-t border-gray-100 dark:border-gray-800 sm:p-6"
+                >
+                  <div id="salesList" class="space-y-4">
+                    <!-- Sales will be loaded here -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <!-- ===== Main Content End ===== -->
+      </div>
+      <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+
+    <!-- Modal for sale -->
+    <div id="saleModal" class="fixed inset-0 z-50 hidden overflow-y-auto overflow-x-hidden bg-gray-900/50">
+      <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl dark:bg-gray-800">
+          <div class="sm:flex sm:items-start">
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+              <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white" id="modalTitle">
+                Conclure une Vente
+              </h3>
+              <div class="mt-2">
+                <form id="saleForm">
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Chiffre d'Affaires</label>
+                    <input type="number" id="chiffreAffaires" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Montant Réel</label>
+                    <input type="number" id="montantReel" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Taux de Commission (%)</label>
+                    <input type="number" id="tauxCommission" value="15" step="0.01" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                  </div>
+                  <div class="flex justify-end space-x-2">
+                    <button type="button" id="cancelSaleBtn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                      Annuler
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                      Conclure
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { getFirestore, collection, getDocs, query, where, addDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import { app } from "./firebaseConfig.js";
+
+      const db = getFirestore(app);
+
+      let agents = [];
+      let currentClientId = null;
+      let currentAgentId = null;
+
+      async function loadAgents() {
+        const querySnapshot = await getDocs(collection(db, "agents"));
+        agents = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      }
+
+      async function loadClients() {
+        const querySnapshot = await getDocs(collection(db, "clients"));
+        const clients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const clientsList = document.getElementById('clientsList');
+        clientsList.innerHTML = clients.map(client => {
+          const agent = agents.find(a => a.uid === client.agentId);
+          const agentName = agent ? `${agent.prenom} ${agent.nom}` : 'Inconnu';
+          const dataStr = Object.entries(client.data).map(([k, v]) => `${k}: ${v}`).join(', ');
+          return `
+            <div class="p-4 border border-gray-200 rounded dark:border-gray-700">
+              <p><strong>Agent:</strong> ${agentName}</p>
+              <p><strong>Données:</strong> ${dataStr}</p>
+              <p><strong>Confirmé le:</strong> ${new Date(client.confirmedAt.seconds * 1000).toLocaleDateString()}</p>
+              <button onclick="openSaleModal('${client.id}', '${client.agentId}')" class="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700">Conclure une vente</button>
+            </div>
+          `;
+        }).join('');
+      }
+
+      async function loadSales() {
+        const querySnapshot = await getDocs(collection(db, "sales"));
+        const sales = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const salesList = document.getElementById('salesList');
+        salesList.innerHTML = sales.map(sale => {
+          const agent = agents.find(a => a.uid === sale.agentId);
+          const agentName = agent ? `${agent.prenom} ${agent.nom}` : 'Inconnu';
+          return `
+            <div class="p-4 border border-gray-200 rounded dark:border-gray-700">
+              <p><strong>Agent:</strong> ${agentName}</p>
+              <p><strong>Chiffre d'Affaires:</strong> ${sale.chiffreAffaires}</p>
+              <p><strong>Montant Réel:</strong> ${sale.montantReel}</p>
+              <p><strong>Bénéfice:</strong> ${sale.benefice}</p>
+              <p><strong>Commission:</strong> ${sale.commission}</p>
+              <p><strong>Date:</strong> ${new Date(sale.createdAt.seconds * 1000).toLocaleDateString()}</p>
+            </div>
+          `;
+        }).join('');
+      }
+
+      window.openSaleModal = function(clientId, agentId) {
+        currentClientId = clientId;
+        currentAgentId = agentId;
+        document.getElementById('saleModal').classList.remove('hidden');
+      };
+
+      document.getElementById('cancelSaleBtn').addEventListener('click', () => {
+        document.getElementById('saleModal').classList.add('hidden');
+      });
+
+      document.getElementById('saleForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const chiffreAffaires = parseFloat(document.getElementById('chiffreAffaires').value);
+        const montantReel = parseFloat(document.getElementById('montantReel').value);
+        const tauxCommission = parseFloat(document.getElementById('tauxCommission').value) / 100;
+        const benefice = chiffreAffaires - montantReel;
+        const commission = benefice * tauxCommission;
+
+        await addDoc(collection(db, "sales"), {
+          clientId: currentClientId,
+          agentId: currentAgentId,
+          chiffreAffaires,
+          montantReel,
+          benefice,
+          tauxCommission,
+          commission,
+          createdAt: new Date()
+        });
+
+        alert('Vente conclue avec succès');
+        document.getElementById('saleModal').classList.add('hidden');
+        loadSales();
+      });
+
+      loadAgents().then(() => {
+        loadClients();
+        loadSales();
+      });
+    </script>
+  </body>
+</html>

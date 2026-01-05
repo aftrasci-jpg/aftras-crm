@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>
+      Formulaires de Prospection | TailAdmin - Tailwind CSS Admin Dashboard Template
+    </title>
+  </head>
+  <body
+    x-data="{ page: 'adminForms', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+  >
+    <!-- ===== Preloader Start ===== -->
+    <include src="./partials/preloader.html"></include>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- ===== Sidebar Start ===== -->
+      <include src="./partials/sidebar.html"></include>
+      <!-- ===== Sidebar End ===== -->
+
+      <!-- ===== Content Area Start ===== -->
+      <div
+        class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto"
+      >
+        <!-- Small Device Overlay Start -->
+        <include src="./partials/overlay.html" />
+        <!-- Small Device Overlay End -->
+
+        <!-- ===== Header Start ===== -->
+        <include src="./partials/header.html" />
+        <!-- ===== Header End ===== -->
+
+        <!-- ===== Main Content Start ===== -->
+        <main>
+          <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+            <!-- Breadcrumb Start -->
+            <div x-data="{ pageName: `Formulaires de Prospection`}">
+              <include src="./partials/breadcrumb.html" />
+            </div>
+            <!-- Breadcrumb End -->
+
+            <div class="space-y-5 sm:space-y-6">
+              <!-- Existing Forms -->
+              <div
+                class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+              >
+                <div class="px-5 py-4 sm:px-6 sm:py-5">
+                  <h3
+                    class="text-base font-medium text-gray-800 dark:text-white/90"
+                  >
+                    Formulaires Existants
+                  </h3>
+                </div>
+                <div
+                  class="p-5 border-t border-gray-100 dark:border-gray-800 sm:p-6"
+                >
+                  <div id="formsList" class="space-y-4">
+                    <!-- Forms will be loaded here -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Create New Form -->
+              <div
+                class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+              >
+                <div class="px-5 py-4 sm:px-6 sm:py-5">
+                  <h3
+                    class="text-base font-medium text-gray-800 dark:text-white/90"
+                  >
+                    Créer un Nouveau Formulaire
+                  </h3>
+                </div>
+                <div
+                  class="p-5 border-t border-gray-100 dark:border-gray-800 sm:p-6"
+                >
+                  <form id="createFormForm">
+                    <div class="mb-4">
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Nom du Formulaire</label>
+                      <input
+                        type="text"
+                        id="formName"
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        required
+                      />
+                    </div>
+                    <div id="fieldsContainer" class="space-y-4">
+                      <!-- Fields will be added here -->
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        onclick="addField()"
+                        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        Ajouter un Champ
+                      </button>
+                      <button
+                        type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Sauvegarder le Formulaire
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <!-- ===== Main Content End ===== -->
+      </div>
+      <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+
+    <script type="module">
+      import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import { app } from "./firebaseConfig.js";
+
+      const db = getFirestore(app);
+      let fields = [];
+
+      async function loadForms() {
+        const querySnapshot = await getDocs(collection(db, "prospection_forms"));
+        const forms = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const formsList = document.getElementById('formsList');
+        formsList.innerHTML = forms.map(form => `
+          <div class="p-4 border border-gray-200 rounded dark:border-gray-700">
+            <h4 class="font-medium">${form.name}</h4>
+            <p class="text-sm text-gray-500">${form.fields.length} champs</p>
+          </div>
+        `).join('');
+      }
+
+      window.addField = function() {
+        const container = document.getElementById('fieldsContainer');
+        const fieldIndex = fields.length;
+        const fieldHtml = `
+          <div class="border border-gray-200 rounded p-4 dark:border-gray-700" data-index="${fieldIndex}">
+            <div class="mb-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Type de Champ</label>
+              <select class="fieldType mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="text">Texte</option>
+                <option value="email">Email</option>
+                <option value="number">Nombre</option>
+                <option value="select">Sélection</option>
+                <option value="checkbox">Case à cocher</option>
+                <option value="textarea">Zone de texte</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Label</label>
+              <input
+                type="text"
+                class="fieldLabel mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Label du champ"
+                required
+              />
+            </div>
+            <div class="fieldOptions mb-2 hidden">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Options (séparées par des virgules)</label>
+              <input
+                type="text"
+                class="fieldOptionsInput mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Option1, Option2, Option3"
+              />
+            </div>
+            <button type="button" onclick="removeField(${fieldIndex})" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Supprimer</button>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', fieldHtml);
+        fields.push({ type: 'text', label: '', options: [] });
+
+        // Add event listener for type change
+        const fieldDiv = container.lastElementChild;
+        const typeSelect = fieldDiv.querySelector('.fieldType');
+        const optionsDiv = fieldDiv.querySelector('.fieldOptions');
+
+        typeSelect.addEventListener('change', function() {
+          if (this.value === 'select') {
+            optionsDiv.classList.remove('hidden');
+          } else {
+            optionsDiv.classList.add('hidden');
+          }
+        });
+      };
+
+      window.removeField = function(index) {
+        document.querySelector(`[data-index="${index}"]`).remove();
+        fields.splice(index, 1);
+        // Re-index remaining fields
+        document.querySelectorAll('[data-index]').forEach((el, i) => {
+          el.setAttribute('data-index', i);
+          el.querySelector('button').setAttribute('onclick', `removeField(${i})`);
+        });
+      };
+
+      document.getElementById('createFormForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formName = document.getElementById('formName').value;
+
+        // Collect fields data
+        const fieldElements = document.querySelectorAll('[data-index]');
+        const fieldsData = Array.from(fieldElements).map((el, index) => {
+          const type = el.querySelector('.fieldType').value;
+          const label = el.querySelector('.fieldLabel').value;
+          const options = type === 'select' ? el.querySelector('.fieldOptionsInput').value.split(',').map(o => o.trim()) : [];
+          return { type, label, options };
+        });
+
+        await addDoc(collection(db, "prospection_forms"), {
+          name: formName,
+          fields: fieldsData,
+          createdAt: new Date()
+        });
+
+        alert('Formulaire créé avec succès');
+        document.getElementById('createFormForm').reset();
+        document.getElementById('fieldsContainer').innerHTML = '';
+        fields = [];
+        loadForms();
+      });
+
+      loadForms();
+    </script>
+  </body>
+</html>

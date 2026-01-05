@@ -50,6 +50,7 @@
     "apexcharts": "^3.51.0",
     "chart.js": "^4.4.6",
     "dropzone": "^6.0.0-beta.2",
+    "firebase": "^12.7.0",
     "flatpickr": "^4.6.13",
     "fullcalendar": "^6.1.15",
     "jsvectormap": "^1.6.0",

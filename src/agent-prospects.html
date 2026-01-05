@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>
+      Mes Prospects | TailAdmin - Tailwind CSS Admin Dashboard Template
+    </title>
+  </head>
+  <body
+    x-data="{ page: 'agentProspects', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+         darkMode = JSON.parse(localStorage.getItem('darkMode'));
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+  >
+    <!-- ===== Preloader Start ===== -->
+    <include src="./partials/preloader.html"></include>
+    <!-- ===== Preloader End ===== -->
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+      <!-- ===== Sidebar Start ===== -->
+      <include src="./partials/sidebar.html"></include>
+      <!-- ===== Sidebar End ===== -->
+
+      <!-- ===== Content Area Start ===== -->
+      <div
+        class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto"
+      >
+        <!-- Small Device Overlay Start -->
+        <include src="./partials/overlay.html" />
+        <!-- Small Device Overlay End -->
+
+        <!-- ===== Header Start ===== -->
+        <include src="./partials/header.html" />
+        <!-- ===== Header End ===== -->
+
+        <!-- ===== Main Content Start ===== -->
+        <main>
+          <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+            <!-- Breadcrumb Start -->
+            <div x-data="{ pageName: `Mes Prospects`}">
+              <include src="./partials/breadcrumb.html" />
+            </div>
+            <!-- Breadcrumb End -->
+
+            <div class="space-y-5 sm:space-y-6">
+              <!-- Mes Prospects -->
+              <div
+                class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+              >
+                <div class="px-5 py-4 sm:px-6 sm:py-5">
+                  <h3
+                    class="text-base font-medium text-gray-800 dark:text-white/90"
+                  >
+                    Mes Prospects
+                  </h3>
+                </div>
+                <div
+                  class="p-5 border-t border-gray-100 dark:border-gray-800 sm:p-6"
+                >
+                  <div id="prospectsList" class="space-y-4">
+                    <!-- Prospects will be loaded here -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Créer un Nouveau Prospect -->
+              <div
+                class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+              >
+                <div class="px-5 py-4 sm:px-6 sm:py-5">
+                  <h3
+                    class="text-base font-medium text-gray-800 dark:text-white/90"
+                  >
+                    Créer un Nouveau Prospect
+                  </h3>
+                </div>
+                <div
+                  class="p-5 border-t border-gray-100 dark:border-gray-800 sm:p-6"
+                >
+                  <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Sélectionner un Formulaire</label>
+                    <select
+                      id="formSelect"
+                      class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      required
+                    >
+                      <option value="">Choisir un formulaire</option>
+                    </select>
+                  </div>
+                  <form id="prospectForm" class="hidden">
+                    <div id="dynamicFields" class="space-y-4">
+                      <!-- Dynamic fields will be added here -->
+                    </div>
+                    <button
+                      type="submit"
+                      class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Créer le Prospect
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <!-- ===== Main Content End ===== -->
+      </div>
+      <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+
+    <!-- Modal for confirmation -->
+    <div id="confirmModal" class="fixed inset-0 z-50 hidden overflow-y-auto overflow-x-hidden bg-gray-900/50">
+      <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl dark:bg-gray-800">
+          <div class="sm:flex sm:items-start">
+            <div class="flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto bg-green-100 rounded-full sm:mx-0 sm:h-10 sm:w-10 dark:bg-green-500/20">
+              <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+              <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white" id="modalTitle">
+                Confirmer le Prospect
+              </h3>
+              <div class="mt-2">
+                <p class="text-sm text-gray-500 dark:text-gray-400" id="modalMessage">
+                  Êtes-vous sûr de vouloir confirmer ce prospect en client ? Cette action est irréversible et supprimera le prospect.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              id="confirmBtn"
+              class="inline-flex justify-center w-full px-3 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              Confirmer
+            </button>
+            <button
+              type="button"
+              id="cancelBtn"
+              class="inline-flex justify-center w-full px-3 py-2 mt-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import { app } from "./firebaseConfig.js";
+
+      const db = getFirestore(app);
+      // For demo, assume agentId is known, in real app from auth
+      const agentId = "testAgentId"; // Replace with actual agent ID from auth
+
+      let forms = [];
+      let selectedForm = null;
+      let prospectToConfirm = null;
+
+      async function loadForms() {
+        const querySnapshot = await getDocs(collection(db, "prospection_forms"));
+        forms = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const select = document.getElementById('formSelect');
+        select.innerHTML = '<option value="">Choisir un formulaire</option>' +
+          forms.map(form => `<option value="${form.id}">${form.name}</option>`).join('');
+      }
+
+      async function loadProspects() {
+        const q = query(collection(db, "prospects"), where("agentId", "==", agentId));
+        const querySnapshot = await getDocs(q);
+        const prospects = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const prospectsList = document.getElementById('prospectsList');
+        prospectsList.innerHTML = prospects.map(prospect => `
+          <div class="p-4 border border-gray-200 rounded dark:border-gray-700">
+            <p><strong>Formulaire:</strong> ${forms.find(f => f.id === prospect.formId)?.name || 'Inconnu'}</p>
+            <p><strong>Statut:</strong> ${prospect.status}</p>
+            <p><strong>Date:</strong> ${new Date(prospect.createdAt.seconds * 1000).toLocaleDateString()}</p>
+            <div class="mt-2">
+              <button onclick="confirmProspect('${prospect.id}')" class="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700">
+                Confirmer
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('formSelect').addEventListener('change', function() {
+        const formId = this.value;
+        selectedForm = forms.find(f => f.id === formId);
+        if (selectedForm) {
+          renderForm(selectedForm.fields);
+          document.getElementById('prospectForm').classList.remove('hidden');
+        } else {
+          document.getElementById('prospectForm').classList.add('hidden');
+        }
+      });
+
+      function renderForm(fields) {
+        const container = document.getElementById('dynamicFields');
+        container.innerHTML = fields.map((field, index) => {
+          let inputHtml = '';
+          switch (field.type) {
+            case 'text':
+            case 'email':
+            case 'number':
+              inputHtml = `<input type="${field.type}" name="field_${index}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />`;
+              break;
+            case 'select':
+              inputHtml = `<select name="field_${index}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+                <option value="">Sélectionner</option>
+                ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+              </select>`;
+              break;
+            case 'checkbox':
+              inputHtml = `<input type="checkbox" name="field_${index}" class="mt-1" />`;
+              break;
+            case 'textarea':
+              inputHtml = `<textarea name="field_${index}" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required></textarea>`;
+              break;
+          }
+          return `
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">${field.label}</label>
+              ${inputHtml}
+            </div>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('prospectForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {};
+        selectedForm.fields.forEach((field, index) => {
+          const value = formData.get(`field_${index}`);
+          data[field.label] = field.type === 'checkbox' ? (value ? true : false) : value;
+        });
+
+        await addDoc(collection(db, "prospects"), {
+          agentId,
+          formId: selectedForm.id,
+          data,
+          status: "en_cours",
+          createdAt: new Date()
+        });
+
+        alert('Prospect créé avec succès');
+        e.target.reset();
+        document.getElementById('prospectForm').classList.add('hidden');
+        document.getElementById('formSelect').value = '';
+        selectedForm = null;
+        loadProspects();
+      });
+
+      window.confirmProspect = function(prospectId) {
+        prospectToConfirm = prospectId;
+        document.getElementById('confirmModal').classList.remove('hidden');
+      };
+
+      document.getElementById('confirmBtn').addEventListener('click', async () => {
+        if (prospectToConfirm) {
+          const prospectDoc = await getDoc(doc(db, "prospects", prospectToConfirm));
+          const prospectData = prospectDoc.data();
+          await addDoc(collection(db, "clients"), {
+            agentId: prospectData.agentId,
+            data: prospectData.data,
+            confirmedAt: new Date()
+          });
+          await deleteDoc(doc(db, "prospects", prospectToConfirm));
+          loadProspects();
+          document.getElementById('confirmModal').classList.add('hidden');
+          prospectToConfirm = null;
+        }
+      });
+
+      document.getElementById('cancelBtn').addEventListener('click', () => {
+        document.getElementById('confirmModal').classList.add('hidden');
+        prospectToConfirm = null;
+      });
+
+      loadForms();
+      loadProspects();
+    </script>
+  </body>
+</html>

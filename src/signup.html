@@ -7,7 +7,7 @@
       content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
     />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Sign Up| TailAdmin - Tailwind CSS Admin Dashboard Template</title>
+    <title>Inscription Agent | TailAdmin - Tailwind CSS Admin Dashboard Template</title>
   </head>
   <body
     x-data="{ page: 'comingSoon', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
@@ -58,10 +58,10 @@
               <h1
                 class="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md"
               >
-                Sign Up
+                Inscription Agent
               </h1>
               <p class="text-sm text-gray-500 dark:text-gray-400">
-                Enter your email and password to sign up!
+                Entrez vos informations pour vous inscrire en tant qu'agent!
               </p>
             </div>
             <div>
@@ -127,36 +127,36 @@
                   >
                 </div>
               </div>
-              <form>
+              <form onsubmit="handleSignup(event)">
                 <div class="space-y-5">
                   <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <!-- First Name -->
+                    <!-- Prénom -->
                     <div class="sm:col-span-1">
                       <label
                         class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
                       >
-                        First Name<span class="text-error-500">*</span>
+                        Prénom<span class="text-error-500">*</span>
                       </label>
                       <input
                         type="text"
-                        id="fname"
-                        name="fname"
-                        placeholder="Enter your first name"
+                        id="prenom"
+                        name="prenom"
+                        placeholder="Entrez votre prénom"
                         class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
                       />
                     </div>
-                    <!-- Last Name -->
+                    <!-- Nom -->
                     <div class="sm:col-span-1">
                       <label
                         class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
                       >
-                        Last Name<span class="text-error-500">*</span>
+                        Nom<span class="text-error-500">*</span>
                       </label>
                       <input
                         type="text"
-                        id="lname"
-                        name="lname"
-                        placeholder="Enter your last name"
+                        id="nom"
+                        name="nom"
+                        placeholder="Entrez votre nom"
                         class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
                       />
                     </div>
@@ -185,6 +185,7 @@
                     </label>
                     <div x-data="{ showPassword: false }" class="relative">
                       <input
+                        id="password"
                         :type="showPassword ? 'text' : 'password'"
                         placeholder="Enter your password"
                         class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pl-4 pr-11 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
@@ -227,6 +228,21 @@
                         </svg>
                       </span>
                     </div>
+                  </div>
+                  <!-- Code Temporaire -->
+                  <div>
+                    <label
+                      class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400"
+                    >
+                      Code Temporaire<span class="text-error-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="code"
+                      name="code"
+                      placeholder="Entrez votre code temporaire"
+                      class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                    />
                   </div>
                   <!-- Checkbox -->
                   <div>
@@ -283,9 +299,10 @@
                   <!-- Button -->
                   <div>
                     <button
+                      type="submit"
                       class="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600"
                     >
-                      Sign Up
+                      S'inscrire en tant qu'Agent
                     </button>
                   </div>
                 </div>
@@ -360,5 +377,55 @@
       </div>
     </div>
     <!-- ===== Page Wrapper End ===== -->
+    <script type="module">
+      import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import { getFirestore, collection, query, where, getDocs, doc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import { app } from "./firebaseConfig.js";
+
+      const db = getFirestore(app);
+      const auth = getAuth(app);
+
+      window.handleSignup = async function(e) {
+        e.preventDefault();
+        const prenom = document.getElementById('prenom').value;
+        const nom = document.getElementById('nom').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const code = document.getElementById('code').value;
+
+        try {
+          // Check code
+          const q = query(collection(db, "activation_codes"), where("code", "==", code), where("used", "==", false));
+          const querySnapshot = await getDocs(q);
+          if (querySnapshot.empty) {
+            alert("Code invalide");
+            return;
+          }
+          const codeDoc = querySnapshot.docs[0];
+          // Mark as used
+          await updateDoc(codeDoc.ref, { used: true });
+
+          // Create user
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const uid = userCredential.user.uid;
+
+          // Add to agents
+          await setDoc(doc(db, "agents", uid), {
+            uid,
+            nom,
+            prenom,
+            email,
+            status: "inactive",
+            createdAt: new Date(),
+            lastLogin: null
+          });
+
+          alert("Inscription réussie");
+          window.location.href = "signin.html";
+        } catch (error) {
+          alert("Erreur: " + error.message);
+        }
+      };
+    </script>
   </body>
 </html>

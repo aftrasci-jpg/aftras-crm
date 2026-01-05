@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Authorized Admin
+    match /authorized_admin/{docId} {
+      allow read, write: if false;
+    }
+
+    // Agents
+    match /agents/{agentId} {
+      allow read: if request.auth != null && get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
+      allow write: if false;
+    }
+
+    // Prospects
+    match /prospects/{prospectId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.agentId;
+    }
+
+    // Clients
+    match /clients/{clientId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.agentId || get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
+      allow write: if false;
+    }
+
+    // Sales
+    match /sales/{saleId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.agentId || get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
+      allow write: if request.auth != null && get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
+    }
+
+    // Prospection Forms
+    match /prospection_forms/{formId} {
+      allow read: if request.auth != null;
+      allow write: if get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
+    }
+  }
+}
