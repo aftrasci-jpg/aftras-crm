@@ -1,39 +1,70 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Authorized Admin
-    match /authorized_admin/{docId} {
-      allow read, write: if false;
+    // Helper functions
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email));
     }
 
-    // Agents
+    function isAgent() {
+      return exists(/databases/$(database)/documents/agents/$(request.auth.uid));
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isActiveAgent() {
+      return isAgent() &&
+             get(/databases/$(database)/documents/agents/$(request.auth.uid)).data.status == 'active';
+    }
+
+    // Authorized Admin collection
+    match /authorized_admin/{email} {
+      allow read: if request.auth != null && request.auth.token.email == email;
+      allow write: if false; // Only created by script
+    }
+
+    // Agents collection
     match /agents/{agentId} {
-      allow read: if request.auth != null && get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
-      allow write: if false;
+      allow read: if isAdmin() || isOwner(agentId);
+      allow write: if isAdmin(); // Only admin can manage agents
+      allow create: if false; // Created through registration
     }
 
-    // Prospects
-    match /prospects/{prospectId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.agentId;
+    // Activation Codes collection
+    match /activation_codes/{code} {
+      allow read: if request.auth != null; // For verification during registration
+      allow write: if isAdmin(); // Only admin can create activation codes
     }
 
-    // Clients
-    match /clients/{clientId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.agentId || get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
-      allow write: if false;
-    }
-
-    // Sales
-    match /sales/{saleId} {
-      allow read: if request.auth != null && request.auth.uid == resource.data.agentId || get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
-      allow write: if request.auth != null && get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
-    }
-
-    // Prospection Forms
+    // Prospection Forms collection
     match /prospection_forms/{formId} {
-      allow read: if request.auth != null;
-      allow write: if get(/databases/$(database)/documents/authorized_admin/$(request.auth.token.email)).exists();
+      allow read: if request.auth != null; // Agents can read for creating prospects
+      allow write: if isAdmin(); // Only admin can manage forms
+    }
+
+    // Prospects collection
+    match /prospects/{prospectId} {
+      allow read, write: if isActiveAgent() &&
+                            resource.data.agentId == request.auth.uid;
+      allow create: if isActiveAgent() &&
+                     request.auth.uid == request.resource.data.agentId;
+    }
+
+    // Clients collection
+    match /clients/{clientId} {
+      allow read: if isAdmin() || (isActiveAgent() && resource.data.agentId == request.auth.uid);
+      allow write: if false; // Only created through conversion, no direct updates
+      allow create: if isActiveAgent() &&
+                     request.auth.uid == request.resource.data.agentId;
+    }
+
+    // Sales collection
+    match /sales/{saleId} {
+      allow read: if isAdmin() || (isActiveAgent() && resource.data.agentId == request.auth.uid);
+      allow write: if isAdmin(); // Only admin can create sales
+      allow create: if isAdmin(); // Sales created by admin
     }
   }
 }
