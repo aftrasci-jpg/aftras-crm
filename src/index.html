@@ -148,10 +148,20 @@
     </div>
     <!-- ===== Page Wrapper End ===== -->
     <script type="module">
+      import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
       import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import { app } from "./firebaseConfig.js";
 
+      const auth = getAuth(app);
       const db = getFirestore(app);
+
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          window.location.href = 'signin.html';
+        } else {
+          loadMetrics();
+        }
+      });
 
       async function loadMetrics() {
         const agentsSnapshot = await getDocs(collection(db, "agents"));
@@ -166,8 +176,6 @@
         const salesSnapshot = await getDocs(collection(db, "sales"));
         document.getElementById('totalSales').textContent = salesSnapshot.size;
       }
-
-      loadMetrics();
     </script>
     <script>
       if ('serviceWorker' in navigator) {
