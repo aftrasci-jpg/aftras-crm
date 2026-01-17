@@ -1,0 +1,93 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Fonctions de vérification de base
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+    
+    function isAgent() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'AGENT';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- COLLECTION USERS ---
+    match /users/{userId} {
+      allow read: if isSignedIn(); // Tout le monde peut voir les profils pour le mapping
+
+      // Création : Un utilisateur peut créer son propre document s'il n'existe pas
+      allow create: if isSignedIn() && request.auth.uid == userId && !exists(/databases/$(database)/documents/users/$(userId));
+
+      // Modification : Admin uniquement (sauf pour lastLogin)
+      allow update: if isAdmin() ||
+                   (isSignedIn() && request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']));
+    }
+
+    // --- COLLECTION CLIENTS ---
+    match /clients/{clientId} {
+      // Lecture : Admin voit tout, Agent voit ses clients
+      allow read: if isAdmin() || (isSignedIn() && resource.data.agentId == request.auth.uid);
+      
+      // Création : Admin ou Agent
+      allow create: if isAdmin() || isAgent();
+      
+      // Mise à jour : 
+      // 1. Admin peut tout modifier (pour conclure la vente)
+      // 2. Agent peut modifier ses clients SAUF si la vente est déjà conclue
+      allow update: if isAdmin() || (
+        isAgent() && 
+        resource.data.agentId == request.auth.uid && 
+        resource.data.status != 'vente conclue'
+      );
+      
+      // Suppression : Réservée à l'Admin
+      allow delete: if isAdmin();
+    }
+
+    // --- COLLECTION SALES (VENTES) ---
+    match /sales/{saleId} {
+      // Lecture : Admin voit tout, Agent voit ses propres ventes
+      allow read: if isAdmin() || (isSignedIn() && resource.data.agentId == request.auth.uid);
+      
+      // Création : STRICTEMENT RÉSERVÉ À L'ADMIN (Workflow Officiel)
+      allow create: if isAdmin();
+      
+      // Modification/Suppression : Réservée à l'Admin
+      allow update, delete: if isAdmin();
+    }
+
+    // --- COLLECTION COMMISSIONS ---
+    match /commissions/{commId} {
+      // Lecture : Admin voit tout, Agent voit ses commissions
+      allow read: if isAdmin() || (isSignedIn() && resource.data.agentId == request.auth.uid);
+      
+      // Création et Mise à jour (statut payée) : Admin uniquement
+      allow create, update: if isAdmin();
+      
+      allow delete: if isAdmin();
+    }
+
+    // --- COLLECTION REMOTE FORMS (PROSPECTS DISTANTS) ---
+    match /remoteForms/{formId} {
+      // Création publique (via le lien partagé)
+      allow create: if true; 
+      
+      // Lecture : Admin ou Agent destinataire
+      allow read: if isAdmin() || (isSignedIn() && resource.data.agentId == request.auth.uid);
+      
+      // Nettoyage après validation : Admin ou Agent
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.agentId == request.auth.uid);
+      
+      allow update: if isAdmin() || (isSignedIn() && resource.data.agentId == request.auth.uid);
+    }
+  }
+}
