@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "echo 'ESM project - no build needed'",
+    "build": "vite build",
     "preview": "npx serve dist --port 3000"
   },
   "dependencies": {
