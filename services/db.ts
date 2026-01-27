@@ -87,6 +87,16 @@ export const dbService = {
     }
   },
 
+  set: async <T>(collectionName: string, id: string, data: Partial<T>, options?: { merge?: boolean }): Promise<void> => {
+    try {
+      const docRef = doc(db, collectionName, id);
+      return await setDoc(docRef, data, options || {});
+    } catch (error) {
+      console.error(`Erreur set ${id}:`, error);
+      throw error;
+    }
+  },
+
   getByQuery: async <T>(collectionName: string, field: string, operator: any, value: any): Promise<T[]> => {
     try {
       const q = query(collection(db, collectionName), where(field, operator, value));

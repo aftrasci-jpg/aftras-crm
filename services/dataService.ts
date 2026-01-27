@@ -221,7 +221,8 @@ export const dataService = {
     const newCode = Math.random().toString(36).substr(2, 8).toUpperCase();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     
-    await dbService.update('access_codes', 'agent_code', { code: newCode, expiresAt, isActive: true });
+    // Utiliser set avec merge pour créer le document s'il n'existe pas
+    await dbService.set('access_codes', 'agent_code', { code: newCode, expiresAt, isActive: true }, { merge: true });
     return { id: 'agent_code', code: newCode, expiresAt, isActive: true };
   }
 };
