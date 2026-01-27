@@ -14,10 +14,10 @@ import {
 import { db } from '../firebase-config';
 
 export const dbService = {
-  getAll: async (collectionName: string) => {
+  getAll: async <T>(collectionName: string): Promise<T[]> => {
     try {
       const querySnapshot = await getDocs(collection(db, collectionName));
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
     } catch (error: any) {
       if (error?.code !== 'unavailable' && error?.code !== 'permission-denied') {
         console.error(`Erreur collection ${collectionName}:`, error);
@@ -26,11 +26,11 @@ export const dbService = {
     }
   },
 
-  getById: async (collectionName: string, id: string) => {
+  getById: async <T>(collectionName: string, id: string): Promise<T | null> => {
     try {
       const docRef = doc(db, collectionName, id);
       const docSnap = await getDoc(docRef);
-      return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+      return docSnap.exists() ? ({ id: docSnap.id, ...docSnap.data() } as T) : null;
     } catch (error: any) {
       if (error?.code === 'permission-denied' && id === 'app_config') {
         return null;
@@ -42,11 +42,11 @@ export const dbService = {
     }
   },
 
-  listenById: (collectionName: string, id: string, callback: (data: any) => void) => {
+  listenById: <T>(collectionName: string, id: string, callback: (data: T | null) => void) => {
     const docRef = doc(db, collectionName, id);
     return onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        callback({ id: docSnap.id, ...docSnap.data() });
+        callback({ id: docSnap.id, ...docSnap.data() } as T);
       } else {
         callback(null);
       }
@@ -58,22 +58,17 @@ export const dbService = {
     });
   },
 
-  add: async (collectionName: string, data: any) => {
+  add: async <T>(collectionName: string, data: Omit<T, 'id'>): Promise<T> => {
     try {
-      if (data.id) {
-        const { id, ...rest } = data;
-        const docRef = doc(db, collectionName, id);
-        await setDoc(docRef, rest);
-        return { id };
-      }
-      return await addDoc(collection(db, collectionName), data);
+      const docRef = await addDoc(collection(db, collectionName), data as any);
+      return { id: docRef.id, ...data } as T;
     } catch (error) {
       console.error(`Erreur ajout ${collectionName}:`, error);
       throw error;
     }
   },
 
-  update: async (collectionName: string, id: string, data: any) => {
+  update: async <T>(collectionName: string, id: string, data: Partial<T>): Promise<void> => {
     try {
       const docRef = doc(db, collectionName, id);
       return await updateDoc(docRef, data);
@@ -83,7 +78,7 @@ export const dbService = {
     }
   },
 
-  delete: async (collectionName: string, id: string) => {
+  delete: async (collectionName: string, id: string): Promise<void> => {
     try {
       return await deleteDoc(doc(db, collectionName, id));
     } catch (error) {
@@ -92,11 +87,11 @@ export const dbService = {
     }
   },
 
-  getByQuery: async (collectionName: string, field: string, operator: any, value: any) => {
+  getByQuery: async <T>(collectionName: string, field: string, operator: any, value: any): Promise<T[]> => {
     try {
       const q = query(collection(db, collectionName), where(field, operator, value));
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
     } catch (error: any) {
       if (error?.code !== 'unavailable' && error?.code !== 'permission-denied') {
         console.error(`Erreur requête ${collectionName}:`, error);

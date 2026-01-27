@@ -73,12 +73,12 @@ export const SupervisorProfileView: React.FC<{ user: UserApp; onUpdate: (user: U
 
     try {
       // Mettre à jour les informations personnelles
-      const updated = await dataService.updateUser(user.id, {
+      await dataService.updateUser(user.id, {
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
       });
-      onUpdate(updated);
+      onUpdate(user);
       
       // Mettre à jour le mot de passe via Firebase Auth
       const currentUser = auth.currentUser;

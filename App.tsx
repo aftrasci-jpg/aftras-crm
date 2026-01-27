@@ -19,10 +19,8 @@ import {
   AgentClientsView, 
   AgentCommissionsView, 
   AgentProfileView,
-  RemoteFormView,
   AgentNotificationsView
 } from './components/AgentViews';
-import { PublicProspectForm } from './components/PublicProspectForm';
 import { dataService } from './services/dataService';
 import { dbService } from './services/db';
 import { authService } from './services/auth';
@@ -56,9 +54,9 @@ const App: React.FC = () => {
         setIsLoading(true);
         // Écouter le document utilisateur en temps réel pour réagir à l'activation admin
         unsubscribeProfile = dbService.listenById('users', firebaseUser.uid, (profile) => {
-          if (profile) {
+          if (profile && typeof profile === 'object' && 'status' in profile) {
             if (profile.status === UserStatus.ACTIVE) {
-              setUser({ ...profile, id: firebaseUser.uid });
+              setUser({ ...profile, id: firebaseUser.uid } as UserApp);
               setError(null);
             } else if (profile.status === UserStatus.DISABLED) {
               setError('Votre compte a été désactivé par un administrateur.');
@@ -161,7 +159,7 @@ const App: React.FC = () => {
     try {
       // Vérifier d'abord le code superviseur
       const supervisorCode = await dataService.getSupervisorAccessCode();
-      const isSupervisorCode = codeInput === supervisorCode.code && new Date() <= new Date(supervisorCode.expiresAt);
+      const isSupervisorCode = supervisorCode && typeof supervisorCode === 'object' && 'code' in supervisorCode && codeInput === supervisorCode.code && 'expiresAt' in supervisorCode && typeof supervisorCode.expiresAt === 'string' && new Date() <= new Date(supervisorCode.expiresAt);
 
       if (isSupervisorCode) {
         // Inscription superviseur - compte activé immédiatement
@@ -184,13 +182,13 @@ const App: React.FC = () => {
       // Vérifier ensuite le code agent
       const accessCode = await dataService.getAccessCode();
 
-      if (codeInput !== accessCode.code) {
+      if (!accessCode || typeof accessCode !== 'object' || !('code' in accessCode) || codeInput !== accessCode.code) {
         setError('Code d\'accès invalide.');
         setIsLoading(false);
         return;
       }
 
-      if (new Date() > new Date(accessCode.expiresAt)) {
+      if (!('expiresAt' in accessCode) || typeof accessCode.expiresAt !== 'string' || new Date() > new Date(accessCode.expiresAt)) {
         setError('Code d\'accès expiré (validité 24h).');
         setIsLoading(false);
         return;
@@ -240,14 +238,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Vérification pour la route publique du formulaire
-  const pathSegments = window.location.pathname.split('/').filter(Boolean);
-  const formIndex = pathSegments.findIndex(segment => segment === 'form');
-  
-  if (formIndex !== -1 && formIndex + 1 < pathSegments.length) {
-    const agentId = pathSegments[formIndex + 1];
-    return <PublicProspectForm agentId={agentId} />;
-  }
 
   if (!user) {
     return (
@@ -467,7 +457,6 @@ const App: React.FC = () => {
         case 'my-clients': return <AgentClientsView user={user} />;
         case 'my-commissions': return <AgentCommissionsView user={user} />;
         case 'profile': return <AgentProfileView user={user} onUpdate={setUser} />;
-        case 'remote-form': return <RemoteFormView user={user} />;
         case 'notifications': return <AgentNotificationsView user={user} />;
         default: return <AgentDashboardHome user={user} onNavigate={setActiveView} />;
       }

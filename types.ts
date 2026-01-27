@@ -92,3 +92,9 @@ export interface NotificationApp {
   read: boolean;
   createdAt: string;
 }
+
+export interface AppSettings {
+  name: string;
+  currency: string;
+  logo?: string;
+}

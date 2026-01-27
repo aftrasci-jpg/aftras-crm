@@ -4,6 +4,7 @@ import { ICONS } from '../constants';
 import { dataService } from '../services/dataService';
 import { dbService } from '../services/db';
 import { UserApp, UserStatus, UserRole, AccessCode, Prospect, ProspectStatus, Client, Sale, NotificationApp } from '../types';
+import { useAppLogo } from '../hooks/useAppLogo';
 
 export const AdminDashboardHome: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -188,8 +189,10 @@ export const AccessCodeView: React.FC<{ readOnly?: boolean }> = ({ readOnly = fa
 
   const handleGenerate = async () => {
     if (readOnly) return;
-    const newCode = await dataService.generateNewCode();
-    setAccessCode(newCode);
+    await dataService.generateNewCode();
+    // Get the updated access code data
+    const accessCodeData = await dataService.getAccessCode();
+    setAccessCode(accessCodeData as AccessCode);
   };
 
   const handleCopy = (text: string, type: 'code' | 'link') => {
@@ -533,7 +536,8 @@ export const AdminClientsView: React.FC<{ readOnly?: boolean }> = ({ readOnly = 
       amount: caValue,
       profit: profitCalculated,
       commission: commissionCalculated,
-      status: 'PENDING'
+      status: 'PENDING',
+      createdAt: new Date().toISOString()
     });
 
     alert('Vente enregistrée avec succès !');
@@ -1195,7 +1199,10 @@ export const AdminNotificationsView: React.FC<{ readOnly?: boolean }> = ({ readO
 export const AdminSettingsView: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
   const [settings, setSettings] = useState({ name: 'AFTRAS CRM', currency: 'FCFA' });
   const [appLogo, setAppLogo] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const logoRef = useRef<HTMLInputElement>(null);
+  const { updateLogo } = useAppLogo();
 
   useEffect(() => {
     const load = async () => {
@@ -1216,17 +1223,109 @@ export const AdminSettingsView: React.FC<{ readOnly?: boolean }> = ({ readOnly =
     alert('Enregistré !');
   };
 
+  const handleLogoUpload = async (file: File) => {
+    // Validation du format et de la taille
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
+    const maxSize = 2 * 1024 * 1024; // 2MB
+
+    if (!allowedTypes.includes(file.type)) {
+      setLogoError('Format de fichier non pris en charge. Veuillez choisir une image JPG, PNG ou SVG.');
+      return;
+    }
+
+    if (file.size > maxSize) {
+      setLogoError('L\'image est trop volumineuse. La taille maximale autorisée est de 2MB.');
+      return;
+    }
+
+    setLogoUploading(true);
+    setLogoError(null);
+
+    try {
+      // Conversion en base64
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string;
+        const success = await updateLogo(base64);
+        
+        if (success) {
+          setAppLogo(base64);
+          alert('Logo mis à jour avec succès !');
+        } else {
+          setLogoError('Erreur lors de la mise à jour du logo.');
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Erreur upload logo:', error);
+      setLogoError('Erreur lors du traitement de l\'image.');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleLogoUpload(file);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-12 py-10 animate-in fade-in duration-700">
       <h1 className="text-3xl font-black text-gray-900 text-center">Paramètres</h1>
       <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-xl space-y-10">
-        <div className="flex flex-col items-center">
-           <div className="w-32 h-32 bg-gray-50 rounded-[2.5rem] border-4 border-dashed border-gray-100 flex items-center justify-center overflow-hidden">
-             {appLogo ? <img src={appLogo} alt="Logo" className="w-full h-full object-contain p-4" /> : "🖼️"}
+        <div className="flex flex-col items-center space-y-6">
+           <div className={`w-32 h-32 bg-gray-50 rounded-[2.5rem] border-4 border-dashed border-gray-100 flex items-center justify-center overflow-hidden transition-all ${
+             logoUploading ? 'animate-pulse border-indigo-300 bg-indigo-50' : 'hover:border-indigo-300 hover:bg-indigo-50'
+           }`}>
+             {logoUploading ? (
+               <div className="text-indigo-600 animate-spin">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+               </div>
+             ) : appLogo ? (
+               <img src={appLogo} alt="Logo" className="w-full h-full object-contain p-4" />
+             ) : (
+               <div className="text-gray-400 text-4xl">🖼️</div>
+             )}
            </div>
-           {!readOnly && <button onClick={() => logoRef.current?.click()} className="mt-4 text-[10px] font-black text-indigo-600 uppercase tracking-widest">Changer le logo</button>}
-           <input type="file" ref={logoRef} className="hidden" onChange={async (e) => { if (e.target.files?.[0]) { const r = new FileReader(); r.onloadend = async () => { await dataService.updateAppLogo(r.result as string); setAppLogo(r.result as string); }; r.readAsDataURL(e.target.files[0]); } }} />
+           
+           {!readOnly && (
+             <>
+               <button 
+                 onClick={() => logoRef.current?.click()} 
+                 disabled={logoUploading}
+                 className={`text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-xl border transition-all ${
+                   logoUploading 
+                     ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
+                     : 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100 hover:text-indigo-700'
+                 }`}
+               >
+                 {logoUploading ? 'Téléchargement...' : 'Changer le logo'}
+               </button>
+               
+               {logoError && (
+                 <div className="text-[9px] text-rose-600 font-bold bg-rose-50 border border-rose-100 px-4 py-2 rounded-xl">
+                   {logoError}
+                 </div>
+               )}
+               
+               <div className="text-[9px] text-gray-400 font-medium text-center">
+                 Formats acceptés : JPG, PNG, SVG<br/>
+                 Taille maximale : 2MB
+               </div>
+             </>
+           )}
+           
+           <input 
+             type="file" 
+             ref={logoRef} 
+             className="hidden" 
+             accept="image/jpeg,image/png,image/svg+xml"
+             onChange={handleLogoChange}
+           />
         </div>
+        
         <form onSubmit={handleSave} className="space-y-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nom de l'App</label>
@@ -1248,12 +1347,19 @@ export const AdminProfileView: React.FC<{ user: UserApp; onUpdate: (user: UserAp
     e.preventDefault();
     if (readOnly) return;
     const fd = new FormData(e.currentTarget);
-    const updated = await dataService.updateUser(user.id, {
+    await dataService.updateUser(user.id, {
       firstName: fd.get('firstName') as string,
       lastName: fd.get('lastName') as string,
       phone: fd.get('phone') as string,
     });
-    onUpdate(updated);
+    // Create updated user object locally since updateUser returns void
+    const updatedUser = {
+      ...user,
+      firstName: fd.get('firstName') as string,
+      lastName: fd.get('lastName') as string,
+      phone: fd.get('phone') as string,
+    };
+    onUpdate(updatedUser);
     alert('Profil mis à jour !');
   };
 

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { UserApp, UserRole } from '../types';
 import { ICONS } from '../constants';
 import { dataService } from '../services/dataService';
+import { AppLogo } from './AppLogo';
 
 interface LayoutProps {
   user: UserApp;
@@ -15,27 +16,21 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ user, onLogout, children, activeView, setActiveView }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
-  const [appLogo, setAppLogo] = useState<string | null>(null);
   const [appSettings, setAppSettings] = useState({ name: 'AFTRAS CRM', currency: 'FCFA' });
 
   useEffect(() => {
-    // Fix: Handle asynchronous logo and settings loading
-    const loadBrand = async () => {
-      const logo = await dataService.getAppLogo();
-      setAppLogo(logo);
+    // Load app settings
+    const loadSettings = async () => {
       const settings = await dataService.getAppSettings();
       setAppSettings(settings);
     };
-    loadBrand();
+    loadSettings();
 
-    const handleLogoChange = async () => setAppLogo(await dataService.getAppLogo());
     const handleSettingsChange = async () => setAppSettings(await dataService.getAppSettings());
     
-    window.addEventListener('app-logo-changed', handleLogoChange);
     window.addEventListener('app-settings-changed', handleSettingsChange);
     
     return () => {
-      window.removeEventListener('app-logo-changed', handleLogoChange);
       window.removeEventListener('app-settings-changed', handleSettingsChange);
     };
   }, []);
@@ -95,7 +90,6 @@ export const Layout: React.FC<LayoutProps> = ({ user, onLogout, children, active
     [UserRole.AGENT]: [
       { id: 'dashboard', label: 'Dashboard', icon: ICONS.Dashboard },
       { id: 'prospecting', label: 'Prospection', icon: ICONS.Prospect },
-      { id: 'remote-form', label: 'Formulaire distant', icon: ICONS.Globe },
       { id: 'my-clients', label: 'Mes clients', icon: ICONS.Client },
       { id: 'my-commissions', label: 'Mes commissions', icon: ICONS.Commission },
       { id: 'notifications', label: 'Notifications', icon: ICONS.Notification },
@@ -150,13 +144,7 @@ export const Layout: React.FC<LayoutProps> = ({ user, onLogout, children, active
         <div className="p-6 flex items-center justify-between">
           {(isSidebarOpen || !isMobile) && (
             <div className={`flex items-center space-x-2 ${!isSidebarOpen && !isMobile ? 'mx-auto' : ''}`}>
-              {appLogo ? (
-                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-white/20 shadow-lg">
-                  <img src={appLogo} alt="Logo" className="max-w-full max-h-full object-contain p-1" />
-                </div>
-              ) : (
-                <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white font-black shrink-0 shadow-lg shadow-orange-500/20">A</div>
-              )}
+              <AppLogo size="md" className="shrink-0 shadow-lg" />
               {isSidebarOpen && renderSidebarBrand()}
             </div>
           )}

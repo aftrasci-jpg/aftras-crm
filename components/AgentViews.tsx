@@ -62,7 +62,7 @@ export const AgentDashboardHome: React.FC<{ user: UserApp; onNavigate: (view: st
         });
         setNotifications(notificationsData);
         setAppSettings(settingsData);
-        setProspectsToday(prospectsTodayCount);
+        setProspectsToday(prospectsTodayCount.length);
         setCommissionTotal(totalCommission);
         setCommissionEnAttente(commissionEnAttente);
       } catch (error) {
@@ -178,29 +178,6 @@ export const AgentDashboardHome: React.FC<{ user: UserApp; onNavigate: (view: st
           </div>
         </div>
       )}
-
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-[3rem] p-10 text-white relative overflow-hidden shadow-2xl shadow-indigo-100">
-        <div className="relative z-10">
-          <h3 className="text-2xl font-black mb-3 tracking-tight">Formulaire de Capture Actif</h3>
-          <p className="text-indigo-100 max-w-md mb-8 font-medium">Partagez votre lien unique pour capturer des leads automatiquement dans votre dashboard CRM.</p>
-          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-6 py-4 rounded-2xl flex-1 font-mono text-sm overflow-hidden truncate">
-              {window.location.origin}/form/{user.agentCode || user.id}
-            </div>
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/form/${user.agentCode || user.id}`);
-                alert('Lien copié !');
-              }}
-              className="bg-white text-indigo-700 px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-100 transition-all flex items-center justify-center shrink-0 shadow-xl"
-            >
-              <span className="mr-2">{ICONS.Copy}</span> Copier
-            </button>
-          </div>
-        </div>
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-        <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-sky-400/20 rounded-full blur-3xl"></div>
-      </div>
     </div>
   );
 };
@@ -346,6 +323,8 @@ export const ProspectingView: React.FC<{ user: UserApp }> = ({ user }) => {
       source: isEditMode ? selectedProspect?.source || 'Direct Agent' : 'Direct Agent',
       productOfInterest: formData.get('product') as string,
       details: formData.get('details') as string,
+      status: ProspectStatus.PENDING,
+      createdAt: new Date().toISOString()
     };
 
     if (isEditMode && selectedProspect) {
@@ -874,8 +853,20 @@ export const AgentCommissionsView: React.FC<{ user: UserApp }> = ({ user }) => {
   // Fix: Handle async dataService methods
   useEffect(() => {
     const loadData = async () => {
-      // Fix: use getSalesByAgent
-      setSales(await dataService.getSalesByAgent(user.id));
+      // Fix: use getSalesByAgent and enrich with client names
+      const salesData = await dataService.getSalesByAgent(user.id);
+      const clientsData = await dataService.getClientsByAgent(user.id);
+      
+      // Enrich sales with client names
+      const enrichedSales = salesData.map((sale: any) => {
+        const client = clientsData.find((c: any) => c.id === sale.clientId);
+        return {
+          ...sale,
+          clientName: client ? client.fullName : 'Client inconnu'
+        };
+      });
+      
+      setSales(enrichedSales);
       setAppSettings(await dataService.getAppSettings());
     };
     loadData();
@@ -1049,12 +1040,19 @@ export const AgentProfileView: React.FC<{ user: UserApp; onUpdate: (user: UserAp
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     // Fix: updateUser exists in updated dataService
-    const updated = await dataService.updateUser(user.id, {
+    await dataService.updateUser(user.id, {
       firstName: fd.get('firstName') as string,
       lastName: fd.get('lastName') as string,
       phone: fd.get('phone') as string,
     });
-    onUpdate(updated);
+    // Update the local user state with the new values
+    const updatedUser = {
+      ...user,
+      firstName: fd.get('firstName') as string,
+      lastName: fd.get('lastName') as string,
+      phone: fd.get('phone') as string,
+    };
+    onUpdate(updatedUser);
     alert('Informations personnelles mises à jour !');
   };
 
@@ -1195,149 +1193,3 @@ export const AgentProfileView: React.FC<{ user: UserApp; onUpdate: (user: UserAp
   );
 };
 
-export const RemoteFormView: React.FC<{ user: UserApp }> = ({ user }) => {
-  const [remoteLeads, setRemoteLeads] = useState<RemoteProspect[]>([]);
-  const link = `https://crm.v6/form/agent-${user.agentCode || user.id}`;
-
-  // Fix: Handle async remote lead loading
-  const refreshLeads = async () => {
-    // Fix: use getRemoteProspectsByAgent
-    setRemoteLeads(await dataService.getRemoteProspectsByAgent(user.id));
-  };
-
-  useEffect(() => {
-    refreshLeads();
-    const handleUpdate = () => refreshLeads();
-    window.addEventListener('remote-leads-updated', handleUpdate);
-    return () => window.removeEventListener('remote-leads-updated', handleUpdate);
-  }, [user.id]);
-
-  const handleConfirm = async (id: string) => {
-    // Fix: use confirmRemoteProspect
-    await dataService.confirmRemoteProspect(id);
-    await refreshLeads();
-    alert("Prospect validé ! Il a été injecté dans votre liste principale.");
-  };
-
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Supprimer définitivement ce lead entrant ?")) {
-      // Fix: use deleteRemoteProspect
-      await dataService.deleteRemoteProspect(id);
-      await refreshLeads();
-    }
-  };
-
-
-  const [stats, setStats] = useState({ total: 0, pending: 0, convertedToday: 0 });
-
-  // Fix: handle async stats loading
-  useEffect(() => {
-    const loadStats = async () => {
-      const prospects = await dataService.getProspectsByAgent(user.id);
-      setStats({
-        total: remoteLeads.length,
-        pending: remoteLeads.filter(l => !l.isVerified).length,
-        convertedToday: prospects.filter(p => p.source.includes('Web Form')).length
-      });
-    };
-    loadStats();
-  }, [remoteLeads, user.id]);
-
-  return (
-    <div className="max-w-6xl mx-auto space-y-12 py-12 animate-in fade-in duration-700 pb-32">
-      {/* HEADER SECTION */}
-      <div className="bg-white p-12 rounded-[4rem] border border-gray-100 shadow-2xl relative overflow-hidden text-center group">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-sky-400 to-indigo-600"></div>
-        <div className="w-24 h-24 bg-sky-50 text-sky-600 rounded-[2.5rem] flex items-center justify-center mx-auto text-4xl shadow-sm mb-8 transition-transform group-hover:rotate-6 group-hover:scale-110">
-          {ICONS.Globe}
-        </div>
-        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Capture de Leads Distants</h2>
-        <p className="text-gray-500 font-medium mt-4 max-w-2xl mx-auto">Chaque soumission sur ce lien crée un lead temporaire ci-dessous et vous envoie une notification immédiate pour traitement.</p>
-        
-        <div className="mt-12 flex flex-col sm:flex-row gap-4 items-center justify-center">
-          <div className="bg-gray-50 px-8 py-5 rounded-[2rem] border-2 border-dashed border-gray-200 font-mono text-sm break-all text-indigo-600 font-bold select-all flex-1 text-center shadow-inner">
-            {window.location.origin}/form/{user.agentCode || user.id}
-          </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/form/${user.agentCode || user.id}`); alert('Lien copié avec succès !'); }}
-                className="px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl hover:bg-indigo-700 transition-all pt-6 shrink-0"
-              >
-                Copier le lien
-              </button>
-            </div>
-        </div>
-      </div>
-
-      {/* KPI GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <StatCard label="Total Leads Entrants" value={stats.total} subValue="Historique captures" icon={ICONS.Globe} color="indigo" />
-        <StatCard label="À Vérifier" value={stats.pending} subValue="Nécessite action" icon={ICONS.Lock} color="amber" />
-        <StatCard label="Convertis CRM" value={stats.convertedToday} subValue="Dossiers officiels" icon={ICONS.Client} color="emerald" />
-      </div>
-
-      {/* WORKFLOW LIST */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-6">
-          <h3 className="text-xl font-black text-gray-900 tracking-tight">Flux des nouveaux leads</h3>
-          <button onClick={refreshLeads} className="p-3 text-gray-400 hover:text-indigo-600 transition-colors">{ICONS.Refresh}</button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6">
-          {remoteLeads.length > 0 ? (
-            remoteLeads.map((lead, index) => (
-              <div 
-                key={lead.id}
-                className="bg-white rounded-[3rem] p-8 border-2 border-dashed border-amber-200 bg-amber-50/5 flex flex-col md:flex-row items-center gap-8 animate-in slide-in-from-bottom-8 hover:border-indigo-300 hover:bg-indigo-50/5 transition-all duration-500 group shadow-sm hover:shadow-xl"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="flex items-center gap-6 flex-1 min-w-0">
-                  <div className="w-16 h-16 rounded-[1.75rem] bg-amber-500 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-amber-200 group-hover:rotate-6 transition-transform">
-                    {lead.fullName[0]}
-                  </div>
-                  <div className="truncate">
-                    <h4 className="font-black text-gray-900 text-xl tracking-tight leading-none mb-2">{lead.fullName}</h4>
-                    <div className="flex items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest gap-3">
-                      <span className="flex items-center gap-1.5">🌍 {lead.city}, {lead.country}</span>
-                      <span className="w-1 h-1 rounded-full bg-gray-200"></span>
-                      <span className="flex items-center gap-1.5 text-indigo-600 font-black">🔗 {lead.source}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white border border-gray-100 rounded-2xl px-6 py-4 min-w-[200px] text-center shadow-sm">
-                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Offre d'intérêt</p>
-                   <p className="font-black text-gray-800 text-xs truncate">{lead.productOfInterest}</p>
-                </div>
-
-                <div className="flex items-center gap-4 shrink-0">
-                  <button 
-                    onClick={() => handleConfirm(lead.id)}
-                    className="px-10 py-5 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all pt-6"
-                  >
-                    Vérifier & Valider
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(lead.id)}
-                    className="p-5 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-100 transition-colors border border-rose-100"
-                    title="Rejeter ce lead"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="py-24 text-center bg-gray-50/50 rounded-[5rem] border-4 border-dashed border-gray-100">
-               <div className="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-sm text-gray-200 text-4xl">
-                📥
-              </div>
-              <p className="text-gray-300 font-black uppercase text-xl tracking-[0.2em] italic">Aucun nouveau lead distant détecté</p>
-              <p className="text-gray-400 mt-4 font-medium max-w-sm mx-auto">Partagez votre lien public ou utilisez le bouton "Simuler" pour tester le workflow.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
