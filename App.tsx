@@ -242,8 +242,10 @@ const App: React.FC = () => {
 
   // Vérification pour la route publique du formulaire
   const pathSegments = window.location.pathname.split('/').filter(Boolean);
-  if (pathSegments[0] === 'form' && pathSegments[1]) {
-    const agentId = pathSegments[1];
+  const formIndex = pathSegments.findIndex(segment => segment === 'form');
+  
+  if (formIndex !== -1 && formIndex + 1 < pathSegments.length) {
+    const agentId = pathSegments[formIndex + 1];
     return <PublicProspectForm agentId={agentId} />;
   }
 
