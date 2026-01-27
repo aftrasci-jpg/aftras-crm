@@ -202,7 +202,7 @@ const App: React.FC = () => {
         lastName: formData.get('lastName') as string,
         email: email,
         role: UserRole.AGENT,
-        status: UserStatus.ACTIVE,
+        status: UserStatus.PENDING,
         id: userCredential.user.uid 
       } as any);
 
