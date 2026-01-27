@@ -203,7 +203,7 @@ export const AccessCodeView: React.FC<{ readOnly?: boolean }> = ({ readOnly = fa
 
   if (!accessCode) return <div className="p-12 text-center font-black text-indigo-600">Chargement...</div>;
 
-  const signupLink = `${window.location.origin}/?mode=signup&code=${accessCode.code}`;
+  const signupLink = `${window.location.origin}${window.location.pathname.split('/').slice(0, -1).join('/')}/?mode=signup&code=${accessCode.code}`;
 
   return (
     <div className="max-w-xl mx-auto space-y-8 py-12 text-center">

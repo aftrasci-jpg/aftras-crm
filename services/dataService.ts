@@ -199,9 +199,14 @@ export const dataService = {
   getAccessCode: async (): Promise<AccessCode> => {
     const code = await dbService.getById('access_codes', 'agent_code');
     if (code && typeof code === 'object' && 'id' in code && 'code' in code && 'expiresAt' in code && 'isActive' in code) {
-      return code as AccessCode;
+      // Vérifier si le code est expiré
+      const expiresAt = code.expiresAt ? new Date(code.expiresAt as string) : new Date();
+      if (expiresAt > new Date() && code.isActive) {
+        return code as AccessCode;
+      }
     }
-    return { id: 'agent_code', code: 'DEFAULT_CODE', expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), isActive: true };
+    // Si aucun code valide n'existe, en générer un nouveau automatiquement
+    return await dataService.generateNewCode();
   },
 
   getSupervisorAccessCode: async (): Promise<AccessCode> => {
